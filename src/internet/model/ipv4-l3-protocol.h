@@ -31,7 +31,7 @@
 #include "ns3/ptr.h"
 #include "ns3/simulator.h"
 #include "ns3/traced-callback.h"
-
+#include "ns3/programmable-switch.h"
 #include <list>
 #include <map>
 #include <stdint.h>
@@ -643,6 +643,11 @@ class Ipv4L3Protocol : public Ipv4
     Ipv4RoutingProtocol::MulticastForwardCallback m_mcb; ///< Multicast forward callback
     Ipv4RoutingProtocol::LocalDeliverCallback m_lcb;     ///< Local delivery callback
     Ipv4RoutingProtocol::ErrorCallback m_ecb;            ///< Error callback
+
+    public:
+    ProgrammableSwitch* programmableSwitch{nullptr};
+    std::vector<Ipv4Header> ipHeaderList;
+    std::vector<Packet> packetList;
 };
 
 } // Namespace ns3

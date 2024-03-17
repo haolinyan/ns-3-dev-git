@@ -4,7 +4,7 @@
 #include <deque>
 #include "ns3/sequence-number.h"
 #include "ns3/ipv4-address.h"
-
+#include "ns3/atp-header.h"
 namespace ns3 {
 struct PacketBuffer {
     bool isAcked;
@@ -21,8 +21,6 @@ struct PacketBuffer {
     Address to;
     int retransmation; // retransmation count
 };
-
-static std::deque<PacketBuffer> TxRxBuffer;
 
 class WindowManager {
     public:
@@ -95,6 +93,8 @@ class WindowManager {
         uint64_t GetWindowShift() {
             return m_windowShift;
         }
+
+        std::deque<PacketBuffer> TxRxBuffer;
 
     private:
         uint64_t m_windowShift{0}; // window shift count

@@ -585,7 +585,7 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
 {
     NS_LOG_FUNCTION(this << device << p << protocol << from << to << packetType);
 
-    NS_LOG_LOGIC("Packet from " << from << " received on node " << m_node->GetId());
+    if (m_node->GetId()==3) NS_LOG_INFO("Packet from " << from << " received on node " << m_node->GetId());
 
     int32_t interface = GetInterfaceForDevice(device);
     NS_ASSERT_MSG(interface != -1, "Received a packet from an interface that is not known to IPv4");
@@ -669,7 +669,26 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
         m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
         return;
     }
-
+    if (programmableSwitch) {
+        ipHeaderList.clear();
+        packetList.clear();
+        int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList);
+        if (flag == 1) {
+            NS_LOG_LOGIC("Dropping received packet -- duplicate.");
+            m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
+            NS_LOG_INFO("Drop packet");
+            return;
+        } else if (flag == 2) {
+            for (int i = 0; i < ipHeaderList.size(); i++) {
+                Ptr<Packet> packetCopy = packetList[i].Copy();
+                Ipv4Header ipHeaderCopy = ipHeaderList[i];
+                m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
+                NS_LOG_INFO("Send packet");
+            }
+            return;
+        }
+    }
+    
     NS_ASSERT_MSG(m_routingProtocol, "Need a routing protocol object to process packets");
     if (!m_routingProtocol->RouteInput(packet, ipHeader, device, m_ucb, m_mcb, m_lcb, m_ecb))
     {

@@ -4,7 +4,7 @@
 
 namespace ns3
 {
-NS_LOG_COMPONENT_DEFINE("AtpHeader");
+
 NS_OBJECT_ENSURE_REGISTERED(AtpHeader);
 
 TypeId
@@ -12,7 +12,7 @@ AtpHeader::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::AtpHeader")
                             .SetParent<Header>()
-                            .SetGroupName("Applications")
+                            .SetGroupName("Internet")
                             .AddConstructor<AtpHeader>();
     return tid;
 }
