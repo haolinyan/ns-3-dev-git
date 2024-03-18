@@ -44,7 +44,6 @@ private:
     uint32_t m_max_agtr_size;
     uint16_t m_appId;
     uint8_t num_workers;
-    bool isECN;
     EventId m_sendEvent;
     EventId m_timeoutEvent;
     static HashTable* hash_table;

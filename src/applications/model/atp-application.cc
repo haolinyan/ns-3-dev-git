@@ -168,7 +168,7 @@ void AtpApplication::SechduleTx() {
     m_total_pkt = ceil((double) m_totalSize / P4ML_DATA_SIZE); 
     pending_pkt = m_total_pkt;
     int num_first_time_sending = (m_total_pkt <= m_max_agtr_size) ? m_total_pkt : m_max_agtr_size;
-    if (m_workerId==0) NS_LOG_INFO("Total packets: " << m_total_pkt << " (" << m_totalSize << ")"
+    if (m_workerId==0) NS_LOG_UNCOND("Total packets: " << m_total_pkt << " (" << m_totalSize << ")"
     " First time sending: " << num_first_time_sending);
     pending_pkt -= num_first_time_sending;
     window_manager.ResetConsecutiveOod();
@@ -281,6 +281,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
     while ((packet = socket->RecvFrom(from)))
     {
         int deqNum = 0;
+        bool isECN = false;
         socket->GetSockName(localAddress);
         m_totalRx += packet->GetSize();
         if (packet->GetSize() > 0) {
@@ -334,7 +335,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
         }
 
         int new_window_size = cc_manager->adjustWindow(isECN);
-        if (isECN) isECN = false;
+        
         int available_window = new_window_size - window_manager.TxRxBuffer.size();
         // if (m_workerId==0) NS_LOG_INFO("New window size: " << new_window_size << " Available window: " << available_window);
         if (available_window <= 0) {

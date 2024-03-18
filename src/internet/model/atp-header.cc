@@ -47,6 +47,10 @@ AtpHeader::SetBitmap(uint32_t bitmap) {
     m_bitmap = bitmap;
 }
 
+void
+AtpHeader::SetEcn(bool state) {
+    m_ecn = state;
+}
 
 void 
 AtpHeader::FillHeader(uint32_t bitmap, uint8_t fanInDegree, bool overflow, bool resend, bool collision, bool ecn, bool isAck, uint16_t aggregatorIndex, uint32_t jobId, uint32_t seqNum)

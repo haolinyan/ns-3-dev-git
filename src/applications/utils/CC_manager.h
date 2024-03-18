@@ -31,7 +31,7 @@ public:
     {
         if (isECN)
         {
-            std::cout << "ECN detected, reducing window size" << std::endl;
+            // std::cout << "ECN detected, reducing window size" << std::endl;
             cwnd_bytes /= 2;
         }
         else

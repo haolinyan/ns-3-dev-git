@@ -38,6 +38,7 @@ class AtpHeader : public Header
         void setAck(bool isAck);
         void SetBitmap(uint32_t bitmap);
         void SetCollision(bool state);
+        void SetEcn(bool state);
 
     private:
         uint32_t m_bitmap;

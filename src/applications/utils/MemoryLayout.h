@@ -6,8 +6,7 @@
 #include "ATPCommon.h"
 #include "ns3/simulator.h"
 #include "ns3/HashTable.h"
-#define ATP_TIMEOUT 0.0005
-#define PS_BUFFER_SIZE 65536
+#include "ATPCommon.h"
 using namespace ns3;
 struct Aggregator {
     uint32_t bitmap;
@@ -65,8 +64,8 @@ public:
             return true;
         }
         if (m_agtr[index].isAggregated) {
-            std::cout << "WARNNING: Received a packet for the same task, but the task has expired, either because the ATP_TIMEOUT is too small or the duplicated SeqNum loop!" << std::endl;
-            std::cout << m_agtr[index].seqNum << " jobId: " << m_agtr[index].jobId << std::endl;
+            // std::cout << "WARNNING: Received a packet for the same task, but the task has expired, either because the ATP_TIMEOUT is too small or the duplicated SeqNum loop!" << std::endl;
+            // std::cout << m_agtr[index].seqNum << " jobId: " << m_agtr[index].jobId << std::endl;
             ResetAggregator(index);
             return false;
         }
@@ -93,6 +92,7 @@ public:
         if (agtr.counter == atpHeader.GetFanInDegree()) {
             m_agtr[index].timestamp = Simulator::Now().GetSeconds();
             m_agtr[index].isAggregated = true;
+            m_agtr[index].ecn |= atpHeader.GetEcn();
             WriteAtpHeader(atpHeader, agtr);
             return 1;
         }
@@ -117,6 +117,7 @@ public:
         NS_ASSERT_MSG(atpHeader.GetIsAck() == false, "AtpHeader is not an ACK");
         atpHeader.setAck(true);
         atpHeader.SetBitmap(agtr.bitmap);
+        atpHeader.SetEcn(agtr.ecn);
     }
 private:
     Aggregator* m_agtr;

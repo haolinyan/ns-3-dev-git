@@ -6,6 +6,8 @@
 #include <ns3/udp-header.h>
 #include "ns3/atp-header.h"
 #include <bitset>
+#include "ATPCommon.h"
+
 using namespace ns3;
 // namespace ns3 {
 class ProgrammableSwitch {
@@ -42,6 +44,10 @@ class ProgrammableSwitch {
             NS_ASSERT_MSG(m_pktType == ATP, "The packet type is not ATP");
             if (!atpHeader.GetIsAck()) {
                 // atpHeader.SetCollision(true);
+                if (m_TxQueueSize >= TXDEVICE_THRESHOLD) {
+                    // std::cout << "At time " << Simulator::Now().GetNanoSeconds() << " set ECN" << std::endl;
+                    atpHeader.SetEcn(true);
+                }
                 m_pktType = COLLISION;
             } else {
                 m_pktType = BROADCAST;
@@ -82,45 +88,20 @@ class ProgrammableSwitch {
         int Pipeline(Ptr<Packet> &p,
                     Ipv4Header& ipHeader, 
                     std::vector<Ipv4Header>& ipHeaderList,
-                    std::vector<Packet>& packetList
+                    std::vector<Packet>& packetList,
+                    uint32_t queueSize
                             ) {
-
+            m_TxQueueSize = queueSize;                        
             Parser(p, ipHeader);
             if (m_pktType == ATP) {
                 Ingress();
             }
 
-            std::cout << "At time " << Simulator::Now().GetNanoSeconds() 
-            << "ns programmable switch received a packet: " << atpHeader.GetSeqNum() 
-            << " from " << ipHeader.GetSource() << std::endl;
+            // std::cout << "At time " << Simulator::Now().GetNanoSeconds() 
+            // << "ns programmable switch received a packet: " << atpHeader.GetSeqNum() 
+            // << " from " << ipHeader.GetSource() << std::endl;
 
             return Deparser(p, ipHeader, ipHeaderList, packetList);
-            // uint32_t bitmap = atpHeader.GetBitmap();
-            // if ((bitmap & m_bitmap) == 0) {
-            //     m_bitmap |= bitmap;
-            // }
-
-            // if (calculateBitSum(m_bitmap) == atpHeader.GetFanInDegree()) {
-            //     m_bitmap = 0;
-            //     m_workerIp.push_back(ipHeader.GetSource());
-            //     Ipv4Address src = ipHeader.GetDestination();
-            //     for (int i = 0; i < atpHeader.GetFanInDegree(); i++) {
-            //         ipHeader.SetDestination(m_workerIp[i]);
-            //         ipHeader.SetSource(src);
-            //         udpHeader.SetSourcePort(dstPort);
-            //         udpHeader.SetDestinationPort(srcPort);
-            //         udpHeader.InitializeChecksum(src, m_workerIp[i], 17);
-            //         p->AddHeader(atpHeader);
-            //         p->AddHeader(udpHeader);
-            //         ipHeaderList.push_back(ipHeader);
-            //         packetList.push_back(*p);
-            //     }
-            //     return 2;
-            // }
-            // m_workerIp.push_back(ipHeader.GetSource());
-            // std::cout << std::bitset<32>(m_bitmap) << std::endl;
-            // std::cout << "At time " << Simulator::Now().GetSeconds() << "s programmable switch received a packet: " 
-            // << "from " << ipHeader.GetSource() << " to " << ipHeader.GetDestination() << std::endl;
         }
 
         uint8_t calculateBitSum(uint32_t data) {
@@ -143,6 +124,7 @@ class ProgrammableSwitch {
 
     public:
         pkt_type_t m_pktType{OTHER};
+        uint32_t m_TxQueueSize{0};
 };
 
 

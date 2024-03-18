@@ -672,9 +672,12 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
         // Ptr<PointToPointNetDevice> p2pdevice = device->GetObject<PointToPointNetDevice>();
         // Ptr<Queue<Packet>> queue = p2pdevice->GetQueue();
         // NS_LOG_INFO("Queue size: " << queue->GetNPackets());
+
+        Ptr<PointToPointNetDevice> dev_to_ps = GetNetDevice(TXDEVICE_ID)->GetObject<PointToPointNetDevice>();
+        uint32_t queueSize = dev_to_ps->GetQueue()->GetNPackets();
         ipHeaderList.clear();
         packetList.clear();
-        int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList);
+        int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList, queueSize);
         if (flag == 2) {
             for (int i = 0; i < ipHeaderList.size(); i++) {
                 Ptr<Packet> packetCopy = packetList[i].Copy();
