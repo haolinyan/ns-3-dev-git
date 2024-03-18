@@ -89,6 +89,11 @@ class ProgrammableSwitch {
             if (m_pktType == ATP) {
                 Ingress();
             }
+
+            std::cout << "At time " << Simulator::Now().GetNanoSeconds() 
+            << "ns programmable switch received a packet: " << atpHeader.GetSeqNum() 
+            << " from " << ipHeader.GetSource() << std::endl;
+
             return Deparser(p, ipHeader, ipHeaderList, packetList);
             // uint32_t bitmap = atpHeader.GetBitmap();
             // if ((bitmap & m_bitmap) == 0) {

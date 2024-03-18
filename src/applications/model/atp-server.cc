@@ -144,14 +144,14 @@ AtpServer::HandleRead(Ptr<Socket> socket)
             NS_LOG_UNCOND("[Error] Hash collision detected in the PS"<< " seqNum= " << atpHeader.GetSeqNum());
             return;
         } else if (flag == 1) {
-            NS_LOG_INFO("[RT]At time " << Simulator::Now().As(Time::S) << " Resent the gradient packet"<< " seqNum= " << atpHeader.GetSeqNum());
+            NS_LOG_INFO("[RT]At time " << Simulator::Now().GetNanoSeconds() << " Resent the gradient packet"<< " seqNum= " << atpHeader.GetSeqNum());
         } else if (flag == 2) {
-            NS_LOG_INFO("[Dup]At time " << Simulator::Now().As(Time::S) << " Drop the redundant packet" << " seqNum= " << atpHeader.GetSeqNum());
+            NS_LOG_INFO("[Dup]At time " << Simulator::Now().GetNanoSeconds()  << " Drop the redundant packet" << " seqNum= " << atpHeader.GetSeqNum());
             return;
         } else if (flag == 3) {
-            NS_LOG_DEBUG("At time " << Simulator::Now().As(Time::S) << " Sent the parameter packet" << " seqNum= " << atpHeader.GetSeqNum());
+            NS_LOG_INFO("At time " << Simulator::Now().GetNanoSeconds()  << " Sent the parameter packet" << " seqNum= " << atpHeader.GetSeqNum());
         } else if (flag == 4) {
-            NS_LOG_INFO("At time " << Simulator::Now().As(Time::S) << " Received a grad packet" << " seqNum= " << atpHeader.GetSeqNum());
+            NS_LOG_INFO("At time " << Simulator::Now().GetNanoSeconds()  << " Received a grad packet" << " seqNum= " << atpHeader.GetSeqNum());
             return;
         }
 

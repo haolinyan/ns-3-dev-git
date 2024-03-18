@@ -1,0 +1,28 @@
+[  0%] Building CXX object scratch/CMakeFiles/scratch_ATPSimulation.dir/ATPSimulation.cc.o
+[  0%] Linking CXX executable /Users/yanhaolin/Desktop/NS3-Learn/ns-3-dev-git/build/scratch/ns3-dev-ATPSimulation-default
+Total packets: 5 (1024) First time sending: 5
+[firstSent] At time: 1000000000ns Worker: 0 sent 248 bytes to 10.103.2.1 Seq= 0
+[firstSent] At time: 1000000000ns Worker: 0 sent 248 bytes to 10.103.2.1 Seq= 1
+[firstSent] At time: 1000000000ns Worker: 0 sent 248 bytes to 10.103.2.1 Seq= 2
+[firstSent] At time: 1000000000ns Worker: 0 sent 248 bytes to 10.103.2.1 Seq= 3
+[firstSent] At time: 1000000000ns Worker: 0 sent 248 bytes to 10.103.2.1 Seq= 4
+[Ack] At time: 1000002115ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 0
+[Timeout] At time: 1000050000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 1
+[Timeout] At time: 1000050000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 2
+[Timeout] At time: 1000050000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 3
+[Timeout] At time: 1000050000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 4
+[Ack] At time: 1000052092ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 1
+[DupAck] At time: 1000052115ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 1
+[Timeout] At time: 1000100000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 2
+[Timeout] At time: 1000100000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 3
+[Timeout] At time: 1000100000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 4
+[Ack] At time: 1000102092ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 2
+[DupAck] At time: 1000102115ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 2
+[Timeout] At time: 1000150000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 3
+[Timeout] At time: 1000150000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 4
+[Ack] At time: 1000152092ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 3
+[DupAck] At time: 1000152115ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 3
+[Timeout] At time: 1000200000ns Worker: 0 resent 248 bytes to 10.103.2.1 Seq= 4
+[Ack] At time: 1000202092ns Worker: 0 received 260 bytes from 04-06-0a:67:02:01:09:00 Seq= 4
+[AppEnd] At time: 1000202092ns Worker: 0 Total Tx: 3900 bytes Total Rx: 2080 bytes
+[AppEnd] At time: 1000202094ns Worker: 1 Total Tx: 3900 bytes Total Rx: 2080 bytes
