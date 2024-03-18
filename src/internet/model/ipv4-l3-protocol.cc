@@ -18,7 +18,8 @@
 //
 
 #include "ipv4-l3-protocol.h"
-
+#include "ns3/point-to-point-net-device.h"
+#include "ns3/queue.h"
 #include "arp-cache.h"
 #include "arp-l3-protocol.h"
 #include "icmpv4-l4-protocol.h"
@@ -585,8 +586,6 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
 {
     NS_LOG_FUNCTION(this << device << p << protocol << from << to << packetType);
 
-    if (m_node->GetId()==3) NS_LOG_INFO("Packet from " << from << " received on node " << m_node->GetId());
-
     int32_t interface = GetInterfaceForDevice(device);
     NS_ASSERT_MSG(interface != -1, "Received a packet from an interface that is not known to IPv4");
 
@@ -670,23 +669,35 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
         return;
     }
     if (programmableSwitch) {
+        // Ptr<PointToPointNetDevice> p2pdevice = device->GetObject<PointToPointNetDevice>();
+        // Ptr<Queue<Packet>> queue = p2pdevice->GetQueue();
+        // NS_LOG_INFO("Queue size: " << queue->GetNPackets());
         ipHeaderList.clear();
         packetList.clear();
         int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList);
-        if (flag == 1) {
-            NS_LOG_LOGIC("Dropping received packet -- duplicate.");
-            m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
-            NS_LOG_INFO("Drop packet");
-            return;
-        } else if (flag == 2) {
+        if (flag == 2) {
             for (int i = 0; i < ipHeaderList.size(); i++) {
                 Ptr<Packet> packetCopy = packetList[i].Copy();
                 Ipv4Header ipHeaderCopy = ipHeaderList[i];
                 m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
-                NS_LOG_INFO("Send packet");
             }
             return;
         }
+
+        // if (flag == 1) {
+        //     NS_LOG_LOGIC("Dropping received packet -- duplicate.");
+        //     m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
+        //     NS_LOG_INFO("Drop packet");
+        //     return;
+        // } else if (flag == 2) {
+        //     for (int i = 0; i < ipHeaderList.size(); i++) {
+        //         Ptr<Packet> packetCopy = packetList[i].Copy();
+        //         Ipv4Header ipHeaderCopy = ipHeaderList[i];
+        //         m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
+        //         NS_LOG_INFO("Send packet");
+        //     }
+        //     return;
+        // }
     }
     
     NS_ASSERT_MSG(m_routingProtocol, "Need a routing protocol object to process packets");

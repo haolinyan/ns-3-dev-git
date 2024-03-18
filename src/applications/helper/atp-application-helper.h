@@ -14,10 +14,23 @@ namespace ns3
 class AtpApplicationHelper
 {
   public:
-    AtpApplicationHelper();
 
     AtpApplicationHelper(Address address, uint16_t port, uint32_t totalSize, uint16_t jobId, uint16_t workerId);
-   
+
+    void SetAttribute(std::string name, const AttributeValue& value);
+
+    ApplicationContainer Install(NodeContainer c);
+
+  private:
+    ObjectFactory m_factory; //!< Object factory.
+};
+
+class AtpServerHelper
+{
+  public:
+
+    AtpServerHelper(uint16_t port);
+
     void SetAttribute(std::string name, const AttributeValue& value);
 
     ApplicationContainer Install(NodeContainer c);

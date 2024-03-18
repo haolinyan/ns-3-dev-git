@@ -36,6 +36,8 @@ class AtpHeader : public Header
         uint32_t GetJobId() const;
         uint32_t GetSeqNum() const;
         void setAck(bool isAck);
+        void SetBitmap(uint32_t bitmap);
+        void SetCollision(bool state);
 
     private:
         uint32_t m_bitmap;

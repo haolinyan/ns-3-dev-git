@@ -27,6 +27,7 @@ build_lib(
     helper/atp-application-helper.cc
     model/atp-application.cc
     utils/HashTable.cc
+    model/atp-server.cc
   HEADER_FILES
     helper/bulk-send-helper.h
     helper/on-off-helper.h
@@ -58,6 +59,8 @@ build_lib(
     helper/atp-application-helper.h
     model/atp-application.h
     utils/programmable-switch.h
+    model/atp-server.h
+    utils/MemoryLayout.h
   LIBRARIES_TO_LINK ${libinternet}
   TEST_SOURCES
     test/three-gpp-http-client-server-test.cc

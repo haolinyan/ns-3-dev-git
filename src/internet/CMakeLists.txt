@@ -344,5 +344,6 @@ build_lib(
   PRIVATE_HEADER_FILES ${private_header_files}
   LIBRARIES_TO_LINK ${libbridge}
                     ${libtraffic-control}
+                    ${libpoint-to-point}
   TEST_SOURCES ${test_sources}
 )

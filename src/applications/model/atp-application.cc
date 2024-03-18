@@ -109,6 +109,7 @@ AtpApplication::StartApplication() {
         hash_table->HashNew_crc(m_appId, i);
     }
     window_manager = WindowManager();
+    window_manager.SetWorkerId(m_workerId);
     if (!m_socket)
     {
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
@@ -167,7 +168,7 @@ void AtpApplication::SechduleTx() {
     m_total_pkt = ceil((double) m_totalSize / P4ML_DATA_SIZE); 
     pending_pkt = m_total_pkt;
     int num_first_time_sending = (m_total_pkt <= m_max_agtr_size) ? m_total_pkt : m_max_agtr_size;
-    NS_LOG_INFO("Total packets: " << m_total_pkt << " (" << m_totalSize << ")"
+    if (m_workerId==0) NS_LOG_INFO("Total packets: " << m_total_pkt << " (" << m_totalSize << ")"
     " First time sending: " << num_first_time_sending);
     pending_pkt -= num_first_time_sending;
     window_manager.ResetConsecutiveOod();
@@ -199,7 +200,7 @@ void AtpApplication::SechduleTx() {
         if(Send(&packetBuffer))
         {
             m_totalTx += P4ML_PACKET_SIZE;
-            NS_LOG_INFO("[firstSent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
+            if (m_workerId==0) NS_LOG_INFO("[firstSent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
             << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << seqNum);
         }
     }
@@ -208,7 +209,7 @@ void AtpApplication::SechduleTx() {
 
 void
 AtpApplication::CheckTimeout(int pos_start, int pos_end, uint64_t window_shift) {
-    // NS_LOG_INFO("At time: " << Simulator::Now().GetNanoSeconds() << "ns Check the range: " << pos_start << " " << pos_end);
+    // if (m_workerId==0) NS_LOG_INFO("At time: " << Simulator::Now().GetNanoSeconds() << "ns Check the range: " << pos_start << " " << pos_end);
     int* timeout_pkt = new int[pos_end - pos_start + 1];
     int count = window_manager.GetTimeOutPkt(pos_start + window_shift, pos_end + window_shift, timeout_pkt);
     if (count == 0) {
@@ -218,10 +219,11 @@ AtpApplication::CheckTimeout(int pos_start, int pos_end, uint64_t window_shift) 
         PacketBuffer packetBuffer = window_manager.TxRxBuffer[timeout_pkt[i]];
         packetBuffer.resend = true;
         window_manager.TxRxBuffer[timeout_pkt[i]].retransmation ++;
+        NS_ASSERT_MSG(packetBuffer.isAcked == false, "packetBuffer.isAcked must be false");
         if(Send(&packetBuffer))
         {
             m_totalTx += P4ML_PACKET_SIZE;
-            NS_LOG_INFO("[Timeout] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
+            if (m_workerId==0) NS_LOG_INFO("[Timeout] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
             << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << packetBuffer.seqNum);
         }
 
@@ -233,6 +235,7 @@ AtpApplication::CheckTimeout(int pos_start, int pos_end, uint64_t window_shift) 
 int AtpApplication::Send(PacketBuffer* packetBuffer)
 {
     NS_LOG_FUNCTION(this);
+    NS_ASSERT_MSG(packetBuffer->isAcked == false, "packetBuffer.isAcked must be false");
     AtpHeader atpHeader;
     atpHeader.FillHeader(
         packetBuffer->bitmap,
@@ -277,7 +280,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
     
     while ((packet = socket->RecvFrom(from)))
     {
-
+        int deqNum = 0;
         socket->GetSockName(localAddress);
         m_totalRx += packet->GetSize();
         if (packet->GetSize() > 0) {
@@ -290,18 +293,39 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
             }
             isECN = atpHeader.GetEcn();
             SequenceNumber16 seqNum(atpHeader.GetSeqNum());
-            int deqNum = window_manager.RecvAck(seqNum);
+            deqNum = window_manager.RecvAck(seqNum);
             if (deqNum == -1) {
-                NS_LOG_WARN("[DupAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
+                if (m_workerId==0) NS_LOG_INFO("[DupAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
             } else if (deqNum == 0) {
-                NS_LOG_INFO("[OodAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize 
-                << " bytes from " << from << " Seq= " << seqNum << " Expected= " << window_manager.TxRxBuffer.front().seqNum);
+                if (m_workerId==0) {
+                    NS_LOG_INFO("[OodAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize 
+                << " bytes from " << from << " Seq= " << seqNum << " Expected= " << window_manager.TxRxBuffer.front().seqNum 
+                << " Count= " << (int) window_manager.GetConsecutiveOod());
+                }
             } else {
-                NS_LOG_DEBUG("[Ack] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
+                if (m_workerId==0) NS_LOG_INFO("[Ack] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
             }
         } else {
             return;
         }
+        
+        if (!window_manager.TxRxBuffer.empty() && FAST_RESTRANSMATION && window_manager.GetConsecutiveOod() >= FAST_TRANSMISSION_THRESHOLD) {
+            // resend the first packet
+            PacketBuffer packetBuffer = window_manager.TxRxBuffer.front();
+            packetBuffer.resend = true;
+            if (window_manager.TxRxBuffer.front().retransmation < MAX_RETRANSMISSION_TIMES) {
+                NS_ASSERT_MSG(packetBuffer.isAcked == false, "packetBuffer.isAcked must be false");
+                if(Send(&packetBuffer))
+                {
+                    m_totalTx += P4ML_PACKET_SIZE;
+                    if (m_workerId==0) NS_LOG_INFO("[FastRetrans] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
+                    << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << packetBuffer.seqNum);
+                }
+            window_manager.ResetConsecutiveOod();
+            window_manager.TxRxBuffer.front().retransmation ++;
+            }
+        }
+        
         if (pending_pkt == 0) {
             if (window_manager.TxRxBuffer.size() == 0) {
                 StopApplication();
@@ -309,28 +333,10 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
             return;
         }
 
-
-        if (FAST_RESTRANSMATION && window_manager.GetConsecutiveOod() >= FAST_TRANSMISSION_THRESHOLD) {
-            // resend the first packet
-            PacketBuffer packetBuffer = window_manager.TxRxBuffer.front();
-            packetBuffer.resend = true;
-            if (window_manager.TxRxBuffer.front().retransmation < MAX_RETRANSMISSION_TIMES) {
-                if(Send(&packetBuffer))
-                {
-                    m_totalTx += P4ML_PACKET_SIZE;
-                    NS_LOG_INFO("[FastRetrans] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
-                    << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << packetBuffer.seqNum);
-                }
-            window_manager.ResetConsecutiveOod();
-            window_manager.TxRxBuffer.front().retransmation ++;
-            }
-        }
-
-
         int new_window_size = cc_manager->adjustWindow(isECN);
         if (isECN) isECN = false;
         int available_window = new_window_size - window_manager.TxRxBuffer.size();
-        // NS_LOG_INFO("New window size: " << new_window_size << " Available window: " << available_window);
+        // if (m_workerId==0) NS_LOG_INFO("New window size: " << new_window_size << " Available window: " << available_window);
         if (available_window <= 0) {
             return;
         }
@@ -338,7 +344,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
         pending_pkt -= num_sending;
         for (int i = 0; i < num_sending; i++) {
             SequenceNumber16 seqNum = window_manager.GetNextSeq();
-            uint16_t switch_agtr_pos = hash_table->hash_map[i];
+            uint16_t switch_agtr_pos = hash_table->hash_map[seqNum.GetValue() % m_max_agtr_size];
             Address from;
             Address to;
             m_socket->GetSockName(from);
@@ -364,7 +370,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
             if(Send(&packetBuffer))
             {
                 m_totalTx += P4ML_PACKET_SIZE;
-                NS_LOG_INFO("[Sent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
+                if (m_workerId==0) NS_LOG_INFO("[Sent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
                 << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << seqNum);
             }
         }

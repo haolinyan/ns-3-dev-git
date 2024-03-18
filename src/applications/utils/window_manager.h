@@ -48,12 +48,19 @@ class WindowManager {
                     m_windowShift ++;
                     deqNum ++;
                 }
+                // if (m_workerId == 0) std::cout << "Expected seqNum(Value): " << seqNum.GetValue() << " -> " << TxRxBuffer.front().seqNum.GetValue() << std::endl;
                 return deqNum;  
             } else {
                 uint16_t index = seqNum.GetValue() - TxRxBuffer.front().seqNum.GetValue();
+                if (index >= TxRxBuffer.size()) {
+                    std::cout << "WARNNING: worker " << m_workerId << "received an unseen SeqNum (larger than the buffer size)" << std::endl;
+                    std::cout << seqNum.GetValue() << " " << TxRxBuffer.front().seqNum.GetValue() << std::endl;
+                }
                 NS_ASSERT_MSG(index < TxRxBuffer.size(), "index must be less than the size of the buffer");
-                TxRxBuffer[index].isAcked = true;
-                consecutiveOod ++;
+                if (!TxRxBuffer[index].isAcked) {
+                    TxRxBuffer[index].isAcked = true;
+                    consecutiveOod ++;
+                }
                 return deqNum;
             }
         }
@@ -96,10 +103,15 @@ class WindowManager {
 
         std::deque<PacketBuffer> TxRxBuffer;
 
+        void SetWorkerId(uint8_t workerId) {
+            m_workerId = workerId;
+        }
+
     private:
         uint64_t m_windowShift{0}; // window shift count
         uint8_t consecutiveOod{0}; // consecutive out of order count
         SequenceNumber16 seqNum{0};
+        uint8_t m_workerId{0};
 };
 
 

@@ -2,15 +2,10 @@
 #include "ns3/string.h"
 #include "ns3/atp-application.h"
 #include "ns3/uinteger.h"
-
+#include "ns3/atp-server.h"
 
 namespace ns3
 {
-
-AtpApplicationHelper::AtpApplicationHelper()
-{
-  m_factory.SetTypeId(AtpApplication::GetTypeId());
-}
 
 AtpApplicationHelper::AtpApplicationHelper(Address address, uint16_t port, uint32_t totalSize, uint16_t jobId, uint16_t workerId)
 {
@@ -36,6 +31,32 @@ AtpApplicationHelper::Install(NodeContainer c)
     {
         Ptr<Node> node = *i;
         Ptr<AtpApplication> app = m_factory.Create<AtpApplication>();
+        node->AddApplication(app);
+        apps.Add(app);
+    }
+    return apps;
+}
+
+AtpServerHelper::AtpServerHelper(uint16_t port)
+{
+  m_factory.SetTypeId(AtpServer::GetTypeId());
+  m_factory.Set("Port", UintegerValue(port));
+}
+
+void
+AtpServerHelper::SetAttribute(std::string name, const AttributeValue& value)
+{
+    m_factory.Set(name, value);
+}
+
+ApplicationContainer
+AtpServerHelper::Install(NodeContainer c)
+{
+    ApplicationContainer apps;
+    for (auto i = c.Begin(); i != c.End(); ++i)
+    {
+        Ptr<Node> node = *i;
+        Ptr<AtpServer> app = m_factory.Create<AtpServer>();
         node->AddApplication(app);
         apps.Add(app);
     }
