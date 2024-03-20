@@ -50,7 +50,7 @@ public:
             return false;
         }
 
-        if (m_agtr[index].timestamp + ATP_TIMEOUT >= Simulator::Now().GetSeconds()) {
+        if (m_agtr[index].timestamp + PS_BUFFER_TIMEOUT >= Simulator::Now().GetSeconds()) {
             return true;
         }
 
@@ -64,7 +64,7 @@ public:
             return true;
         }
         if (m_agtr[index].isAggregated) {
-            // std::cout << "WARNNING: Received a packet for the same task, but the task has expired, either because the ATP_TIMEOUT is too small or the duplicated SeqNum loop!" << std::endl;
+            // std::cout << "WARNNING: Received a packet for the same task, but the task has expired, either because the PS_BUFFER_TIMEOUT is too small or the duplicated SeqNum loop!" << std::endl;
             // std::cout << m_agtr[index].seqNum << " jobId: " << m_agtr[index].jobId << std::endl;
             ResetAggregator(index);
             return false;
@@ -82,6 +82,7 @@ public:
         }
 
     int RecvAtpHeader(AtpHeader &atpHeader) {
+        // return 3;
         uint32_t index = atpHeader.GetSeqNum() % PS_BUFFER_SIZE;
         if (isCollision(index, atpHeader)) {
             if (m_agtr[index].jobId != atpHeader.GetJobId() || m_agtr[index].seqNum != atpHeader.GetSeqNum()) {
@@ -93,10 +94,14 @@ public:
             m_agtr[index].timestamp = Simulator::Now().GetSeconds();
             m_agtr[index].isAggregated = true;
             m_agtr[index].ecn |= atpHeader.GetEcn();
-            WriteAtpHeader(atpHeader, agtr);
+            WriteAtpHeader(atpHeader, m_agtr[index]);
             return 1;
         }
         if ((agtr.bitmap & atpHeader.GetBitmap()) == 1) {
+            if (atpHeader.GetSeqNum() == 1573) {
+                std::cout << "At time " << Simulator::Now().GetNanoSeconds() << "ns Received a duplicated packet" << " seqNum= " << atpHeader.GetSeqNum() 
+                << " " << atpHeader.GetBitmap() << " " << agtr.bitmap << std::endl;
+            }
             return 2;
         }
         m_agtr[index].bitmap |= atpHeader.GetBitmap();
@@ -108,13 +113,12 @@ public:
         m_agtr[index].isExpired = false;
         if (m_agtr[index].counter == atpHeader.GetFanInDegree()) {
             m_agtr[index].isAggregated = true;
-            WriteAtpHeader(atpHeader, agtr);
+            WriteAtpHeader(atpHeader, m_agtr[index]);
             return 3;
         }
         return 4;
         }
     void WriteAtpHeader(AtpHeader &atpHeader, Aggregator &agtr) {
-        NS_ASSERT_MSG(atpHeader.GetIsAck() == false, "AtpHeader is not an ACK");
         atpHeader.setAck(true);
         atpHeader.SetBitmap(agtr.bitmap);
         atpHeader.SetEcn(agtr.ecn);

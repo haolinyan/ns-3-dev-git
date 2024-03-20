@@ -1,0 +1,13 @@
+latency = 500 # 500 ns
+bandwidth = 100  # 100 bit per nano second
+ATP_PKT_SIZE = 260
+UDP_HDR_SIZE = 8
+IP_HDR_SIZE = 20
+PPP_HDR_SIZE = 2
+TOTAL_PKT_SIZE = ATP_PKT_SIZE + UDP_HDR_SIZE + IP_HDR_SIZE + PPP_HDR_SIZE
+
+print(TOTAL_PKT_SIZE)
+
+# print(22 * 1024 * 1024 / TOTAL_PKT_SIZE)
+
+print(25*3000 / 2 / TOTAL_PKT_SIZE)

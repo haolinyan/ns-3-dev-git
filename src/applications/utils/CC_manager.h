@@ -1,12 +1,10 @@
 #ifndef CC_MANAGER_H
 #define CC_MANAGER_H
-
-#define MAX_BYTES 100 * P4ML_PACKET_SIZE
-
 #include "ATPCommon.h"
 #include <iostream>
 #include <stdint.h>
 #include <stdio.h>
+#include "ATPCommon.h"
 
 using namespace std;
 #define do_div(n, base) ({            \
@@ -31,7 +29,7 @@ public:
     {
         if (isECN)
         {
-            // std::cout << "ECN detected, reducing window size" << std::endl;
+            std::cout << "ECN detected, reducing window size" << std::endl;
             cwnd_bytes /= 2;
         }
         else

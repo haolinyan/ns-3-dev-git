@@ -685,6 +685,10 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
                 m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
             }
             return;
+        } else if (flag == 3) {
+            NS_LOG_LOGIC("Dropping received packet -- duplicate.");
+            m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
+            return;
         }
 
         // if (flag == 1) {

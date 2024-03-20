@@ -31,6 +31,7 @@ class WindowManager {
             NS_ASSERT_MSG(packet.isAcked == false, "packet.isAck must be false");
             if (TxRxBuffer.size() !=0 ) NS_ASSERT_MSG(packet.seqNum > TxRxBuffer.back().seqNum, "packet.seqNum must be greater than the last packet in the buffer");
             TxRxBuffer.push_back(packet);
+            inflight ++;
         }
 
         // Recv a seqNum and return the type of the seqNum
@@ -43,6 +44,7 @@ class WindowManager {
                 TxRxBuffer.pop_front();
                 m_windowShift ++;
                 deqNum ++;
+                inflight --;
                 while (!TxRxBuffer.empty() && TxRxBuffer.front().isAcked) {
                     TxRxBuffer.pop_front();
                     m_windowShift ++;
@@ -60,6 +62,7 @@ class WindowManager {
                 if (!TxRxBuffer[index].isAcked) {
                     TxRxBuffer[index].isAcked = true;
                     consecutiveOod ++;
+                    inflight --;
                 }
                 return deqNum;
             }
@@ -107,11 +110,16 @@ class WindowManager {
             m_workerId = workerId;
         }
 
+        uint32_t GetInflight() {
+            return inflight;
+        }
+
     private:
         uint64_t m_windowShift{0}; // window shift count
         uint8_t consecutiveOod{0}; // consecutive out of order count
         SequenceNumber16 seqNum{0};
         uint8_t m_workerId{0};
+        uint32_t inflight{0};
 };
 
 

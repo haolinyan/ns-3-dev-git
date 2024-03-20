@@ -24,7 +24,7 @@ class AtpServer : public Application
     static TypeId GetTypeId();
     AtpServer();
     ~AtpServer() override;
-
+    void Stats();
   protected:
     void DoDispose() override;
 
@@ -40,13 +40,17 @@ class AtpServer : public Application
      * \param socket the socket the packet was received to.
      */
     void HandleRead(Ptr<Socket> socket);
-
+    TracedCallback<double, double> m_agg_thoughtput;
     uint16_t m_port;       //!< Port on which we listen for incoming packets.
     uint8_t m_tos;         //!< The packets Type of Service
     Ptr<Socket> m_socket;  //!< IPv4 Socket
     Address m_local;       //!< local multicast address
     uint32_t m_max_agtr_size; //!< Maximum AGTR size
     uint16_t m_appId; //!< Application ID
+    uint32_t m_sent{0};
+    uint32_t m_received{0};
+    EventId m_statsEvent;
+    double TimeInterval{1e-6}; //!< Time interval for throughput calculation
 };
 
 } // namespace ns3

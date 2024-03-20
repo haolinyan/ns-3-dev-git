@@ -1,5 +1,4 @@
 #include "HashTable.h"
-#define MAX_BYTES 100 * P4ML_PACKET_SIZE
 
 HashTable::HashTable(int size)
 {

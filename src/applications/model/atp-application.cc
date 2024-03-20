@@ -15,6 +15,7 @@
 #include <cmath>
 #include <vector>
 #include "ns3/sequence-number.h"
+#include "ns3/ATPCommon.h"
 #define FAST_RESTRANSMATION true
 #define CHECK_ACK false
 
@@ -55,8 +56,13 @@ AtpApplication::GetTypeId()
                           MakeUintegerChecker<uint32_t>())
             .AddAttribute("MaxAGTRSize",
                           "Maximumn number of AGTRs used in this app",
-                          UintegerValue(100),
+                          UintegerValue(MAX_AGTR_COUNT),
                           MakeUintegerAccessor(&AtpApplication::m_max_agtr_size),
+                          MakeUintegerChecker<uint32_t>())
+            .AddAttribute("UsedAGTRSize",
+                          "Number of AGTRs used in this app",
+                          UintegerValue(1200),
+                          MakeUintegerAccessor(&AtpApplication::m_used_agtr_size),
                           MakeUintegerChecker<uint32_t>())
             .AddAttribute("appId",
                           "Application ID",
@@ -73,6 +79,14 @@ AtpApplication::GetTypeId()
                           UintegerValue(0),
                           MakeUintegerAccessor(&AtpApplication::m_workerId),
                           MakeUintegerChecker<uint16_t>())
+            .AddTraceSource("WindowSizeTrace",
+                          "Window size to trace.",
+                          MakeTraceSourceAccessor(&AtpApplication::m_windowSizeTrace),
+                          "ns3::AtpApplication::ValueTracedCallback")
+            .AddTraceSource("AggThroughputTrace",
+                          "Aggregator throughput to trace.",
+                          MakeTraceSourceAccessor(&AtpApplication::m_agg_thoughtput),
+                          "ns3::AtpApplication::AggThroughputTracedCallback")
             .AddAttribute("NumWokers",
                           "Number of workers",
                           UintegerValue(2),
@@ -102,9 +116,9 @@ AtpApplication::StartApplication() {
     NS_LOG_FUNCTION(this);
 
     hash_table = new HashTable(MAX_AGTR_COUNT);
-    cc_manager = new CC_manager(m_max_agtr_size);
+    cc_manager = new CC_manager(INITIAL_WINDOW_SIZE);
     // set the hashtable
-    for (size_t i = 0; i < m_max_agtr_size; i++)
+    for (size_t i = 0; i < m_used_agtr_size; i++)
     {
         hash_table->HashNew_crc(m_appId, i);
     }
@@ -167,11 +181,12 @@ void AtpApplication::SechduleTx() {
     NS_LOG_FUNCTION(this);
     m_total_pkt = ceil((double) m_totalSize / P4ML_DATA_SIZE); 
     pending_pkt = m_total_pkt;
-    int num_first_time_sending = (m_total_pkt <= m_max_agtr_size) ? m_total_pkt : m_max_agtr_size;
+    int num_first_time_sending = (m_total_pkt <= INITIAL_WINDOW_SIZE) ? m_total_pkt : INITIAL_WINDOW_SIZE;
     if (m_workerId==0) NS_LOG_UNCOND("Total packets: " << m_total_pkt << " (" << m_totalSize << ")"
     " First time sending: " << num_first_time_sending);
     pending_pkt -= num_first_time_sending;
     window_manager.ResetConsecutiveOod();
+    m_windowSizeTrace(INITIAL_WINDOW_SIZE, false);
     for (int i = 0; i < num_first_time_sending; i++) {
         SequenceNumber16 seqNum = window_manager.GetNextSeq();
         uint16_t switch_agtr_pos = hash_table->hash_map[i];
@@ -203,8 +218,10 @@ void AtpApplication::SechduleTx() {
             if (m_workerId==0) NS_LOG_INFO("[firstSent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
             << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << seqNum);
         }
+        m_sent += P4ML_DATA_SIZE;
     }
     m_timeoutEvent = Simulator::Schedule(Seconds(TIMEOUT), &AtpApplication::CheckTimeout, this, 0, num_first_time_sending - 1, window_manager.GetWindowShift());
+    m_statsEvent = Simulator::Schedule(Seconds(TimeInterval), &AtpApplication::Stats, this);
 }
 
 void
@@ -223,10 +240,10 @@ AtpApplication::CheckTimeout(int pos_start, int pos_end, uint64_t window_shift) 
         if(Send(&packetBuffer))
         {
             m_totalTx += P4ML_PACKET_SIZE;
-            if (m_workerId==0) NS_LOG_INFO("[Timeout] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
+            NS_LOG_INFO("[Timeout] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
             << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << packetBuffer.seqNum);
         }
-
+        m_sent += P4ML_DATA_SIZE;
     }
     m_timeoutEvent = Simulator::Schedule(Seconds(TIMEOUT), &AtpApplication::CheckTimeout, this, pos_start, pos_end, window_shift);
     delete[] timeout_pkt;   
@@ -256,11 +273,22 @@ int AtpApplication::Send(PacketBuffer* packetBuffer)
 }
 
 void
+AtpApplication::Stats() {
+    double RX = (double) ((m_received * 8) / 1e+9) / TimeInterval;
+    double TX = (double) ((m_sent * 8) / 1e+9) / TimeInterval;
+    m_received = 0;
+    m_sent = 0;
+    m_agg_thoughtput(TX, RX);
+    m_statsEvent = Simulator::Schedule(Seconds(TimeInterval), &AtpApplication::Stats, this);
+}
+
+void
 AtpApplication::StopApplication()
 {
     NS_LOG_FUNCTION(this);
     Simulator::Cancel(m_sendEvent);
     Simulator::Cancel(m_timeoutEvent);
+    Simulator::Cancel(m_statsEvent);
     if (m_socket)
     {
         m_socket->Close();
@@ -297,19 +325,20 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
             deqNum = window_manager.RecvAck(seqNum);
             if (deqNum == -1) {
                 if (m_workerId==0) NS_LOG_INFO("[DupAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
+                continue;
             } else if (deqNum == 0) {
-                if (m_workerId==0) {
+               
                     NS_LOG_INFO("[OodAck] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize 
                 << " bytes from " << from << " Seq= " << seqNum << " Expected= " << window_manager.TxRxBuffer.front().seqNum 
                 << " Count= " << (int) window_manager.GetConsecutiveOod());
-                }
+                
             } else {
                 if (m_workerId==0) NS_LOG_INFO("[Ack] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " received " << receivedSize << " bytes from " << from << " Seq= " << seqNum);
             }
         } else {
-            return;
+            continue;
         }
-        
+        m_received += P4ML_DATA_SIZE;
         if (!window_manager.TxRxBuffer.empty() && FAST_RESTRANSMATION && window_manager.GetConsecutiveOod() >= FAST_TRANSMISSION_THRESHOLD) {
             // resend the first packet
             PacketBuffer packetBuffer = window_manager.TxRxBuffer.front();
@@ -319,9 +348,10 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
                 if(Send(&packetBuffer))
                 {
                     m_totalTx += P4ML_PACKET_SIZE;
-                    if (m_workerId==0) NS_LOG_INFO("[FastRetrans] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
+                    NS_LOG_INFO("[FastRetrans] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " resent " 
                     << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << packetBuffer.seqNum);
                 }
+                m_sent += P4ML_DATA_SIZE;
             window_manager.ResetConsecutiveOod();
             window_manager.TxRxBuffer.front().retransmation ++;
             }
@@ -335,8 +365,8 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
         }
 
         int new_window_size = cc_manager->adjustWindow(isECN);
-        
-        int available_window = new_window_size - window_manager.TxRxBuffer.size();
+        m_windowSizeTrace((uint32_t) new_window_size, isECN);
+        int available_window = new_window_size - (int) window_manager.GetInflight();
         // if (m_workerId==0) NS_LOG_INFO("New window size: " << new_window_size << " Available window: " << available_window);
         if (available_window <= 0) {
             return;
@@ -345,7 +375,7 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
         pending_pkt -= num_sending;
         for (int i = 0; i < num_sending; i++) {
             SequenceNumber16 seqNum = window_manager.GetNextSeq();
-            uint16_t switch_agtr_pos = hash_table->hash_map[seqNum.GetValue() % m_max_agtr_size];
+            uint16_t switch_agtr_pos = hash_table->hash_map[seqNum.GetValue() % m_used_agtr_size];
             Address from;
             Address to;
             m_socket->GetSockName(from);
@@ -371,9 +401,10 @@ AtpApplication::HandleRead(Ptr<Socket> socket) {
             if(Send(&packetBuffer))
             {
                 m_totalTx += P4ML_PACKET_SIZE;
-                if (m_workerId==0) NS_LOG_INFO("[Sent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
+                NS_LOG_INFO("[Sent] At time: " << Simulator::Now().GetNanoSeconds() << "ns Worker: " << m_workerId << " sent " 
                 << P4ML_DATA_SIZE << " bytes to " << m_RemoteAddressString << " Seq= " << seqNum);
             }
+            m_sent += P4ML_DATA_SIZE;
         }
         m_timeoutEvent = Simulator::Schedule(Seconds(TIMEOUT), &AtpApplication::CheckTimeout, this, window_manager.TxRxBuffer.size() - num_sending, window_manager.TxRxBuffer.size() - 1, window_manager.GetWindowShift());
     }

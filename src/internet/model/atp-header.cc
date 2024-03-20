@@ -37,6 +37,10 @@ AtpHeader::AtpHeader()
       m_seqNum(0)
 {
 }
+void 
+AtpHeader::SetResend(bool state) {
+    m_resend = state;
+}
 
 void 
 AtpHeader::setAck(bool isAck) {

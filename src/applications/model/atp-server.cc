@@ -13,6 +13,8 @@
 #include "ns3/udp-socket.h"
 #include "ns3/uinteger.h"
 #include "ns3/atp-header.h"
+#include "ns3/simulator.h"
+#include "ns3/ATPCommon.h"
 namespace ns3
 {
 
@@ -44,6 +46,10 @@ AtpServer::GetTypeId()
                           UintegerValue(65536),
                           MakeUintegerAccessor(&AtpServer::m_max_agtr_size),
                           MakeUintegerChecker<uint32_t>())
+            .AddTraceSource("AggThroughputTrace",
+                          "Aggregator throughput to trace.",
+                          MakeTraceSourceAccessor(&AtpServer::m_agg_thoughtput),
+                          "ns3::AtpApplication::AggThroughputTracedCallback")
             .AddAttribute("appId",
                             "Application ID",
                             UintegerValue(0),
@@ -101,6 +107,17 @@ AtpServer::StartApplication()
 
     m_socket->SetIpTos(m_tos); // Affects only IPv4 sockets.
     m_socket->SetRecvCallback(MakeCallback(&AtpServer::HandleRead, this));
+    m_statsEvent = Simulator::Schedule(Seconds(TimeInterval), &AtpServer::Stats, this);
+}
+
+void
+AtpServer::Stats() {
+    double RX = (double) ((m_received * 8) / 1e+9) / TimeInterval;
+    double TX = (double) ((m_sent * 8) / 1e+9) / TimeInterval;
+    m_received = 0;
+    m_sent = 0;
+    m_agg_thoughtput(TX, RX);
+    m_statsEvent = Simulator::Schedule(Seconds(TimeInterval), &AtpServer::Stats, this);
 }
 
 void
@@ -113,6 +130,7 @@ AtpServer::StopApplication()
         m_socket->Close();
         m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
     }
+    Simulator::Cancel(m_statsEvent);
 }
 
 void
@@ -140,6 +158,7 @@ AtpServer::HandleRead(Ptr<Socket> socket)
         AtpHeader atpHeader;
         packet->RemoveHeader(atpHeader);
         int flag = m_ps.RecvAtpHeader(atpHeader);
+        m_received += P4ML_DATA_SIZE;
         if (flag == -1) {
             NS_LOG_UNCOND("[Error] Hash collision detected in the PS"<< " seqNum= " << atpHeader.GetSeqNum());
             return;
@@ -151,14 +170,14 @@ AtpServer::HandleRead(Ptr<Socket> socket)
         } else if (flag == 3) {
             NS_LOG_INFO("At time " << Simulator::Now().GetNanoSeconds()  << " Sent the parameter packet" << " seqNum= " << atpHeader.GetSeqNum());
         } else if (flag == 4) {
-            NS_LOG_INFO("At time " << Simulator::Now().GetNanoSeconds()  << " Received a grad packet" << " seqNum= " << atpHeader.GetSeqNum());
+            NS_LOG_INFO("At time " << Simulator::Now().GetNanoSeconds() << " Received a grad packet" << " seqNum= " << atpHeader.GetSeqNum());
             return;
         }
 
         packet->AddHeader(atpHeader);
 
         socket->SendTo(packet, 0, from);
-
+        m_sent += P4ML_DATA_SIZE;
         if (InetSocketAddress::IsMatchingType(from))
         {
             NS_LOG_DEBUG("At time " << Simulator::Now().As(Time::S) << " server sent "

@@ -10,7 +10,7 @@
 #include "ns3/ATPCommon.h"
 #include "ns3/window_manager.h"
 #include "ns3/CC_manager.h"
-
+#include "ns3/traced-value.h"
 namespace ns3 {
 class Socket;
 class Packet;
@@ -24,6 +24,9 @@ public:
     void SechduleTx();
     void HandleRead(Ptr<Socket> socket);
     void CheckTimeout(int pos_start, int pos_end, uint64_t window_shift);
+    typedef void (*ValueTracedCallback)(uint32_t, bool);
+    typedef void (*AggThroughputTracedCallback)(double, double);
+    void Stats();
 
 protected:
     void DoDispose() override;
@@ -42,15 +45,22 @@ private:
     uint16_t m_jobId;
     uint16_t m_workerId;
     uint32_t m_max_agtr_size;
+    uint32_t m_used_agtr_size;
     uint16_t m_appId;
     uint8_t num_workers;
     EventId m_sendEvent;
     EventId m_timeoutEvent;
+    EventId m_statsEvent;
     static HashTable* hash_table;
     CC_manager* cc_manager;
     WindowManager window_manager;
     uint8_t m_tos;    
     std::string m_RemoteAddressString;
+    TracedCallback<uint32_t, bool> m_windowSizeTrace;
+    TracedCallback<double, double> m_agg_thoughtput;
+    uint32_t m_received{0};
+    uint32_t m_sent{0};
+    double TimeInterval{1e-6}; // 1us
 };
 }
 #endif
