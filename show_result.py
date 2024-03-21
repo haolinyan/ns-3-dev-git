@@ -43,7 +43,45 @@ def plot_thoughput():
     plt.show()
 
 
+def aggregate_and_show_th(interval = 1e+3, ifn=1, filename="SW_RX.csv", tx=False):
+    ifn2name = {1: "W0", 2: "W1", 3: "W2"}
+    df = pd.read_csv(filename, sep=",").query("ifn == %s" % ifn)
+    start = 0
+    tmp_size = 0
+    y = []
+    x = []
+    for i in range(len(df)):
+        if df.iloc[i]["Time"] < start + interval:
+            if tx:
+                tmp_size += df.iloc[i]["TX(B)"] * 8
+            else:
+                tmp_size += df.iloc[i]["RX(B)"] * 8
+        else:
+            y.append(tmp_size / interval)
+            x.append(start + interval)
+            start += interval
+            if tx:
+                tmp_size = df.iloc[i]["TX(B)"] * 8
+            else:
+                tmp_size = df.iloc[i]["RX(B)"] * 8
+    plt.clf()
+    plt.plot(x, y)
+    if tx:
+        plt.title("Tx of %s[%s]" % (ifn2name[ifn], filename))
+    else:
+        plt.title("Rx of %s[%s]" % (ifn2name[ifn], filename))
+    plt.show()
+
+
+
+
 
 if __name__ == "__main__":
-    plot_windowsize()
+    # plot_windowsize()
     plot_thoughput()
+    aggregate_and_show_th(ifn=1, filename="SW_RX.csv")
+    aggregate_and_show_th(ifn=2, filename="SW_RX.csv")
+    aggregate_and_show_th(ifn=3, filename="SW_RX.csv")
+    aggregate_and_show_th(ifn=1, filename="SW_TX.csv", tx=True)
+    aggregate_and_show_th(ifn=2, filename="SW_TX.csv", tx=True)
+    aggregate_and_show_th(ifn=3, filename="SW_TX.csv", tx=True)

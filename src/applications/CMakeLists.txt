@@ -24,10 +24,9 @@ build_lib(
     model/udp-echo-server.cc
     model/udp-server.cc
     model/udp-trace-client.cc
-    helper/atp-application-helper.cc
-    model/atp-application.cc
-    utils/HashTable.cc
-    model/atp-server.cc
+    atp-app/common/HashTable.cc
+    atp-app/atp-client-app.cc
+    atp-app/atp-server-app.cc
   HEADER_FILES
     helper/bulk-send-helper.h
     helper/on-off-helper.h
@@ -52,15 +51,15 @@ build_lib(
     model/udp-echo-server.h
     model/udp-server.h
     model/udp-trace-client.h
-    utils/ATPCommon.h
-    utils/CC_manager.h
-    utils/HashTable.h
-    utils/window_manager.h
-    helper/atp-application-helper.h
-    model/atp-application.h
-    utils/programmable-switch.h
-    model/atp-server.h
-    utils/MemoryLayout.h
+    atp-app/common/ATPCommon.h
+    atp-app/common/CC_manager.h
+    atp-app/common/HashTable.h
+    atp-app/common/p4ml_struct.h
+    atp-app/common/WindowManager.h
+    atp-app/atp-client-app.h
+    atp-app/atp-helper.h
+    atp-app/atp-server-app.h
+    atp-app/programmable-switch.h
   LIBRARIES_TO_LINK ${libinternet}
   TEST_SOURCES
     test/three-gpp-http-client-server-test.cc
