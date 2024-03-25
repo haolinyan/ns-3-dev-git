@@ -209,6 +209,11 @@ class Node : public Object
     void UnregisterDeviceAdditionListener(DeviceAdditionListener listener);
 
     /**
+     * \returns the type of the node.
+     */
+    uint32_t GetNodeType();
+
+    /**
      * \returns true if checksums are enabled, false otherwise.
      */
     static bool ChecksumEnabled();
@@ -221,6 +226,8 @@ class Node : public Object
      */
     void DoDispose() override;
     void DoInitialize() override;
+    // extra
+    uint32_t m_node_type;
 
   private:
     /**

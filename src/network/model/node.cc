@@ -391,4 +391,10 @@ Node::NotifyDeviceAdded(Ptr<NetDevice> device)
     }
 }
 
+uint32_t 
+Node::GetNodeType()
+{
+	return m_node_type;
+}
+
 } // namespace ns3
