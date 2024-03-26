@@ -17,7 +17,8 @@ std::ifstream topof;
 uint64_t nic_rate;
 uint64_t maxRtt, maxBdp;
 uint8_t buffer_size = 32;
-bool ack_high_prio = false; // {0: ACK has same priority with data packet, 1: prioritize ACK}
+bool ack_high_prio = 1; // {0: ACK has same priority with data packet, 1: prioritize ACK}
+bool enable_qcn = false; // disable QCN by default
 // ECN settings
 std::unordered_map<uint64_t, uint32_t> rate2kmax, rate2kmin;
 std::unordered_map<uint64_t, double> rate2pmax;
@@ -159,7 +160,6 @@ std::vector<Ipv4Address> serverAddress;
 
 int main(int argc, char *argv[]){
     LogComponentEnable("Simulation", LOG_LEVEL_INFO);
-    bool enable_qcn = false;
     topof.open("scratch/physical_topology.txt");
 	if (!topof.is_open()){
 		NS_LOG_ERROR("Cannot open physical_topology.txt");
@@ -196,6 +196,7 @@ int main(int argc, char *argv[]){
 			Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
 			n.Add(sw);
 			sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
+			sw->SetAttribute("AckHighPrio", UintegerValue(ack_high_prio));
 		}
 	}
 
@@ -299,7 +300,9 @@ int main(int argc, char *argv[]){
 				sw->m_mmu->ConfigEcn(j, rate2kmin[rate], rate2kmax[rate], rate2pmax[rate]);
 				// set pfc
 				uint64_t delay = (uint64_t) DynamicCast<QbbChannel>(dev->GetChannel())->GetDelay().GetTimeStep();
-				uint32_t headroom = rate * delay / 8 / 1000000000 * 3;
+				// uint32_t headroom = rate * delay / 8 / 1000000000 * 3;
+				uint32_t headroom = 4*1024; // 4KB
+				NS_LOG_INFO("Link " << i << " " << j << " delay: " << delay << " headroom: " << headroom);
 				sw->m_mmu->ConfigHdrm(j, headroom);
 
 				// set pfc alpha, proportional to link bw
@@ -310,7 +313,8 @@ int main(int argc, char *argv[]){
 				}
 			}
 			sw->m_mmu->ConfigNPort(sw->GetNDevices()-1);
-			sw->m_mmu->ConfigBufferSize(buffer_size * 1024 * 1024);
+			// sw->m_mmu->ConfigBufferSize(buffer_size * 1024 * 1024); // 32MB
+			sw->m_mmu->ConfigBufferSize(36*1024); // 32MB
 			sw->m_mmu->node_id = sw->GetId();
 		}
 	}
@@ -329,7 +333,7 @@ int main(int argc, char *argv[]){
 	bool var_win = false, fast_react = true;
 	bool multi_rate = true;
 	double u_target = 0.95;
-	bool rate_bound = true;
+	bool rate_bound = false; // 默认打满带宽
 	std::string dctcp_rate_ai = "1000Mb/s";
 	double pint_prob = 1.0;
 	//
@@ -433,18 +437,32 @@ int main(int argc, char *argv[]){
 			}
 	}
 
-	RdmaClientHelper clientHelper(
-		0, // priority group
+	RdmaClientHelper clientHelper_w0(
+		1, // priority group
 		node_id_to_ip(0), // source IP
 		node_id_to_ip(1), // dest IP
 		portNumder[0][1], // source port
 		 ++ portNumder[1][0], // dest port
-		packet_payload_size * 5, // write size
+		packet_payload_size * 100, // write size
+		maxBdp, // window
+		maxRtt // base RTT
+	);
+	
+	RdmaClientHelper clientHelper_w2(
+		1, // priority group
+		node_id_to_ip(2), // source IP
+		node_id_to_ip(1), // dest IP
+		++ portNumder[0][1], // source port
+		++ portNumder[1][0], // dest port
+		packet_payload_size * 100, // write size
 		maxBdp, // window
 		maxRtt // base RTT
 	);
 
-	ApplicationContainer appCon = clientHelper.Install(n.Get(0));
+	ApplicationContainer appCon = clientHelper_w0.Install(n.Get(0));
+	appCon.Start(Time(0));
+
+	appCon = clientHelper_w2.Install(n.Get(2));
 	appCon.Start(Time(0));
 
 	NS_LOG_INFO("Run Simulation.");

@@ -87,37 +87,38 @@ int SwitchNode::GetOutDev(Ptr<const Packet> p, CustomHeader &ch){
 	return nexthops[idx];
 }
 
-/*
-void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
-	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
-	if (m_mmu->CheckShouldPause(inDev, qIndex)){
-		device->SendPfc(qIndex, 0);
-		m_mmu->SetPause(inDev, qIndex);
-	}
-}
-void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
-	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
-	if (m_mmu->CheckShouldResume(inDev, qIndex)){
-		device->SendPfc(qIndex, 1);
-		m_mmu->SetResume(inDev, qIndex);
-	}
-}
-*/
+
+// void SwitchNode::CheckAndSendPfc(uint32_t inDev, uint32_t qIndex){
+// 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
+// 	if (m_mmu->CheckShouldPause(inDev, qIndex)){
+// 		device->SendPfc(qIndex, 0);
+// 		m_mmu->SetPause(inDev, qIndex);
+// 	}
+// }
+// void SwitchNode::CheckAndSendResume(uint32_t inDev, uint32_t qIndex){
+// 	Ptr<QbbNetDevice> device = DynamicCast<QbbNetDevice>(m_devices[inDev]);
+// 	if (m_mmu->CheckShouldResume(inDev, qIndex)){
+// 		device->SendPfc(qIndex, 1);
+// 		m_mmu->SetResume(inDev, qIndex);
+// 	}
+// }
+
 void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 
 	int idx = GetOutDev(p, ch);
 	
 	if (idx >= 0){
 		NS_ASSERT_MSG(GetDevice(idx)->IsLinkUp(), "The routing table look up should return link that is up");
-
+		
 		// determine the qIndex
 		uint32_t qIndex;
-		if (ch.l3Prot == 0xFF || ch.l3Prot == 0xFE || (m_ackHighPrio && (ch.l3Prot == 0xFD || ch.l3Prot == 0xFC))){  //QCN or PFC or NACK, go highest priority
+		if (ch.l3Prot == 0xFF || ch.l3Prot == 0xFE || (m_ackHighPrio && (ch.l3Prot == 0xFD || ch.l3Prot == 0xFC))){  //QCN or PFC or ACK, NACK, go highest priority
 			qIndex = 0;
 		}else{
 			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if TCP, put to queue 1
 		}
 
+		// std::cout << "At time " << Simulator::Now() << "SwitchNode " << GetId() << " received packet from " << ch.sip << " to " << ch.dip << " with size " << p->GetSize() << " bytes, protocol " << (int)ch.l3Prot << " and queue " << qIndex << " to device " << idx << std::endl;
 		// admission control
 		FlowIdTag t;
 		p->PeekPacketTag(t);

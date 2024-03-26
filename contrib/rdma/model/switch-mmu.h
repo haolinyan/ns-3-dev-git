@@ -38,7 +38,7 @@ public:
 	void ConfigHdrm(uint32_t port, uint32_t size);
 	void ConfigNPort(uint32_t n_port);
 	void ConfigBufferSize(uint32_t size);
-
+	void Report(uint32_t port, uint32_t qIndex);
 	// config
 	uint32_t node_id;
 	uint32_t buffer_size;

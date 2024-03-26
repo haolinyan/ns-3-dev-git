@@ -320,7 +320,7 @@ uint32_t CustomHeader::GetUdpHeaderSize(void){
 
 
 uint32_t CustomHeader::GetStaticWholeHeaderSize(void){
-	return 14 + 20 + GetUdpHeaderSize();
+	return 2 + 20 + GetUdpHeaderSize();
 }
 
 } // namespace ns3
