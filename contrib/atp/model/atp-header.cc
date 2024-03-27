@@ -84,6 +84,10 @@ AtpHeader::FillHeader(uint32_t bitmap,
     m_len_tensor = len_tensor;
     m_seqNum = seqNum;
 }
+void
+AtpHeader::SetLen(uint32_t len) {
+    m_len_tensor = len;
+}
 
 void 
 AtpHeader::SetResend(bool state) {

@@ -42,8 +42,8 @@ class AtpHeader : public Header
         void SetCollision(bool state);
         void SetEcn(bool state);
         void SetResend(bool state);
+        void SetLen(uint32_t len);
 
-        
         uint32_t GetSerializedSize() const override;
         void Serialize(Buffer::Iterator start) const override;
         uint32_t Deserialize(Buffer::Iterator start) override;
