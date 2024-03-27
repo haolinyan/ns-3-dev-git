@@ -443,7 +443,7 @@ int main(int argc, char *argv[]){
 		node_id_to_ip(1), // dest IP
 		portNumder[0][1], // source port
 		 ++ portNumder[1][0], // dest port
-		packet_payload_size * 100, // write size
+		packet_payload_size * 1, // write size
 		maxBdp, // window
 		maxRtt // base RTT
 	);
@@ -454,7 +454,7 @@ int main(int argc, char *argv[]){
 		node_id_to_ip(1), // dest IP
 		++ portNumder[0][1], // source port
 		++ portNumder[1][0], // dest port
-		packet_payload_size * 100, // write size
+		packet_payload_size * 1, // write size
 		maxBdp, // window
 		maxRtt // base RTT
 	);

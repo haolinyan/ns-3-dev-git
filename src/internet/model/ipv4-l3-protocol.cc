@@ -667,24 +667,25 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
         m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
         return;
     }
-    if (programmableSwitch) {
-        Ptr<PointToPointNetDevice> dev_to_ps = GetNetDevice(TXDEVICE_ID)->GetObject<PointToPointNetDevice>();
-        uint32_t queueSize = dev_to_ps->GetQueue()->GetNPackets();
-        ipHeaderList.clear();
-        packetList.clear();
-        int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList, queueSize);
-        if (flag == 2) {
-            for (int i = 0; i < ipHeaderList.size(); i++) {
-                Ptr<Packet> packetCopy = packetList[i].Copy();
-                Ipv4Header ipHeaderCopy = ipHeaderList[i];
-                m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
-            }
-            return;
-        } else if (flag == 3) {
-            NS_LOG_LOGIC("Dropping received packet -- duplicate.");
-            m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
-            return;
-        }
+
+    // if (programmableSwitch) {
+    //     Ptr<PointToPointNetDevice> dev_to_ps = GetNetDevice(TXDEVICE_ID)->GetObject<PointToPointNetDevice>();
+    //     uint32_t queueSize = dev_to_ps->GetQueue()->GetNPackets();
+    //     ipHeaderList.clear();
+    //     packetList.clear();
+    //     int flag = programmableSwitch->Pipeline(packet, ipHeader, ipHeaderList, packetList, queueSize);
+    //     if (flag == 2) {
+    //         for (int i = 0; i < ipHeaderList.size(); i++) {
+    //             Ptr<Packet> packetCopy = packetList[i].Copy();
+    //             Ipv4Header ipHeaderCopy = ipHeaderList[i];
+    //             m_routingProtocol->RouteInput(packetCopy, ipHeaderCopy, device, m_ucb, m_mcb, m_lcb, m_ecb);
+    //         }
+    //         return;
+    //     } else if (flag == 3) {
+    //         NS_LOG_LOGIC("Dropping received packet -- duplicate.");
+    //         m_dropTrace(ipHeader, packet, DROP_DUPLICATE, this, interface);
+    //         return;
+    //     }
 
         // if (flag == 1) {
         //     NS_LOG_LOGIC("Dropping received packet -- duplicate.");
@@ -700,7 +701,7 @@ Ipv4L3Protocol::Receive(Ptr<NetDevice> device,
         //     }
         //     return;
         // }
-    }
+    // }
     
     NS_ASSERT_MSG(m_routingProtocol, "Need a routing protocol object to process packets");
     if (!m_routingProtocol->RouteInput(packet, ipHeader, device, m_ucb, m_mcb, m_lcb, m_ecb))
