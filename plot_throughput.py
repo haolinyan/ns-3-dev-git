@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 import numpy as np
 
-df = pd.read_csv("firstClientTx.csv", sep=",")
+df = pd.read_csv("FirstClientTx.csv", sep=",")
 beding_time = 0
 time_interval = 5000
 

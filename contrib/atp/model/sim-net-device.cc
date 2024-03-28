@@ -29,6 +29,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/atp-tag.h"
 #include "ns3/Common.h"
+#include "programmable-switch-node.h"
 namespace ns3
 {
 
@@ -182,9 +183,15 @@ SimNetDevice::SimNetDevice()
     NS_LOG_FUNCTION(this);
 }
 
+
 SimNetDevice::~SimNetDevice()
 {
     NS_LOG_FUNCTION(this);
+}
+
+DataRate
+SimNetDevice::GetDataRate() {
+    return m_bps;
 }
 
 void
@@ -223,6 +230,18 @@ SimNetDevice::SetDataRate(DataRate bps)
 {
     NS_LOG_FUNCTION(this);
     m_bps = bps;
+}
+
+void 
+SimNetDevice::ClearQueue() {
+    while (!m_queue->IsEmpty())
+    {
+       m_queue->Dequeue();
+    }
+    while (!m_priorityQueue->IsEmpty())
+    {
+       m_priorityQueue->Dequeue();
+    }
 }
 
 void
@@ -406,8 +425,13 @@ SimNetDevice::Receive(Ptr<Packet> packet)
         m_macRxTrace(originalPacket);
         AtpTag tag;
         tag.SetNode(GetRemoteNodeId(), GetNodeId());
+        tag.SetQueueSize(m_queue->GetNPackets());
         packet->AddPacketTag(tag);
-        m_rxCallback(packet);
+        if (m_node->GetNodeType() > 0){ // switch
+			m_node->GetObject<ProgrammableSwitchNode>()->SwitchReceiveFromDevice(this, packet);
+		}else {
+            m_rxCallback(packet);
+        }   
     }
 }
 
@@ -625,6 +649,12 @@ SimNetDevice::Send(Ptr<Packet> packet, const Address& dest, uint16_t protocolNum
         return true;
     }
 
+    AtpTag tag;
+    packet->RemovePacketTag(tag);
+    
+    NS_LOG_UNCOND("Enqueue failed, seq " << tag.GetSeq() << " from " << GetNodeId() << " to " << GetRemoteNodeId() 
+    << " Qsize " << m_queue->GetCurrentSize().GetValue() << " MaxSize " << m_queue->GetMaxSize().GetValue() << " Drop packet");
+    exit(-1);
     // Enqueue may fail (overflow)
 
     m_macTxDropTrace(packet);

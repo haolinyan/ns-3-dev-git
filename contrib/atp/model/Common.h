@@ -17,7 +17,9 @@
 #define SW "\033[33m[SW]\033[0m"
 #define TIMEOUT "\033[31m[TIMEOUT]\033[0m"
 #define PS_BUFFER_SIZE 65536
+#define ATP_ENABLE 1
 namespace ns3 {
 typedef Callback<void, Ptr<Packet>, Ipv4Address, uint32_t> SendPacketCallback;
+typedef Callback<void> CancelNICQueueCallback;
 }
 #endif

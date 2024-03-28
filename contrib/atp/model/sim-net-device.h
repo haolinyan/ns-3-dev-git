@@ -59,7 +59,7 @@ class SimNetDevice : public NetDevice
      * \param bps the data rate at which this object operates
      */
     void SetDataRate(DataRate bps);
-
+    DataRate GetDataRate();
     /**
      * Set the interframe gap used to separate packets.  The interframe gap
      * defines the minimum space required between packets sent by this device.
@@ -153,7 +153,7 @@ class SimNetDevice : public NetDevice
     void SetNode(Ptr<Node> node) override;
 
     bool NeedsArp() const override;
-
+    void ClearQueue();
 
     Address GetMulticast(Ipv6Address addr) const override;
     void SetReceiveCallback(NetDevice::ReceiveCallback cb) override;
@@ -161,15 +161,14 @@ class SimNetDevice : public NetDevice
     bool SupportsSendFrom() const override;
     void SetDeviceType(std::string deviceType);
     typedef Callback<void, Ptr<Packet>> SimReceiveCallback;
-    SimReceiveCallback m_rxCallback;              
+    SimReceiveCallback m_rxCallback;   
+    uint32_t GetRemoteNodeId();
+    uint32_t GetNodeId();           
   protected:
     /**
      * \brief Dispose of the object
      */
     void DoDispose() override;
-
-    uint32_t GetRemoteNodeId();
-    uint32_t GetNodeId();
     /**
      * \returns the address of the remote device connected to this device
      * through the point to point channel.

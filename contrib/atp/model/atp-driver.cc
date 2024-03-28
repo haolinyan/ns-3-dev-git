@@ -32,9 +32,14 @@ void AtpDriver::Init(void){
     } else if (m_client) {
         m_client->SetNode(m_node);
         m_client->m_SendPacketCallback = MakeCallback(&AtpDriver::SendPacket, this);
+        m_client->m_CancelNICQueueCallback = MakeCallback(&AtpDriver::CancelTask, this);
     } else {
         NS_ASSERT_MSG(false, "Server or Client not set");
     }
+}
+
+void AtpDriver::CancelTask() {
+    m_nic[1]->ClearQueue();
 }
 
 void AtpDriver::AddTableEntry(Ipv4Address ip, int devIndex) {

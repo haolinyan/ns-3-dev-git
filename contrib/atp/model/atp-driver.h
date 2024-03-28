@@ -23,6 +23,7 @@ public:
     // Add a task
     void AddTask(uint64_t size, Ipv4Address _sip, Ipv4Address _dip, Callback<void> notifyAppFinish);
     void PrintTable();
+    void CancelTask();
 private:
     std::unordered_map<uint32_t, int> m_rTable;
     std::vector<Ptr<SimNetDevice>> m_nic;

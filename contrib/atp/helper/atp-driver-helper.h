@@ -38,6 +38,10 @@ class AtpDriverHelper
       m_channelFactory.Set(n1, v1);
     }
 
+    void SetQueueAttribute(std::string n1, const AttributeValue& v1) {
+      m_queueFactory.Set(n1, v1);
+    }
+
   
     NetDeviceContainer Install(NodeContainer c) {
       NS_ASSERT(c.GetN() == 2);

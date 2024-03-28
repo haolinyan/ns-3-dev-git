@@ -21,6 +21,7 @@ build_lib(
                  model/atp-header.h
                  helper/atp-driver-helper.h
                  utils/atp-tag.h
+                 model/programmable-switch-node.h
     LIBRARIES_TO_LINK ${libcore}
                       ${libnetwork}
                       ${libinternet}

@@ -92,7 +92,7 @@ public:
             ipHeader.SetTtl(64);
             packet->AddHeader(atpHeader);
             packet->AddHeader(ipHeader);
-            AtpTag tag;
+            packet->RemovePacketTag(tag);
             tag.SetSeq(seqNum);
             packet->AddPacketTag(tag);
             m_SendPacketCallback(packet, src, 1); 
@@ -143,7 +143,7 @@ public:
             ipHeader.SetTtl(64);
             packet->AddHeader(atpHeader);
             packet->AddHeader(ipHeader);
-            AtpTag tag;
+            packet->RemovePacketTag(tag);
             tag.SetSeq(seqNum);
             packet->AddPacketTag(tag);
             m_TxQueue.push(std::make_pair(packet, src));

@@ -23,17 +23,19 @@ class AtpTag : public Tag
         return GetTypeId();
     }
     uint32_t GetSerializedSize() const override {
-        return 4;
+        return 8;
     }
     void Serialize(TagBuffer buf) const override {
         buf.WriteU16(m_seq);
         buf.WriteU8(m_send_node);
         buf.WriteU8(m_recv_node);
+        buf.WriteU32(m_queue_size);
     }
     void Deserialize(TagBuffer buf) override {
         m_seq = buf.ReadU16();
         m_send_node = buf.ReadU8();
         m_recv_node = buf.ReadU8();
+        m_queue_size = buf.ReadU32();
     }
     void Print(std::ostream& os) const override {
         os << "seq=" << m_seq;
@@ -47,6 +49,9 @@ class AtpTag : public Tag
         m_send_node = send_node;
         m_recv_node = recv_node;
     }
+    void SetQueueSize(uint32_t queue_size) {
+        m_queue_size = queue_size;
+    }
     uint8_t GetSendNode() const {
         return m_send_node;
     }
@@ -56,10 +61,14 @@ class AtpTag : public Tag
     uint16_t GetSeq() const {
         return m_seq;
     }
+    uint32_t GetQueueSize() const {
+        return m_queue_size;
+    }
 private:
     uint16_t m_seq{0};
     uint8_t m_send_node{0};
     uint8_t m_recv_node{0};
+    uint32_t m_queue_size{0};
 };
 }
 

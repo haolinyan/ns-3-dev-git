@@ -72,6 +72,7 @@ public:
         bool is_ecn_mark_packet = atpHeader.GetEcn();
         bool is_collision_packet = atpHeader.GetCollision();
         uint16_t seqNum = atpHeader.GetSeqNum();
+        totalRx ++;
         if (atpHeader.GetKey() != m_key) {
             return;
         }
@@ -110,6 +111,7 @@ public:
                     Ptr<Packet> pkt = GeneratePacket(process_next_seq_num, switch_agtr_pos, false, false, false);
                     m_TxQueue.push(std::make_pair(pkt, m_dip));
                     to_be_sent ++;
+                    totalTx ++;
                 }
                 send_pointer = next_seq_num;   
             }
@@ -132,6 +134,7 @@ public:
                             Ptr<Packet> pkt = GeneratePacket(process_next_seq_num, switch_agtr_pos, false, false, false);
                             m_TxQueue.push(std::make_pair(pkt, m_dip));
                             to_be_sent ++;
+                            totalTx ++;
                         }
                     }
                     send_pointer = next_seq_num;
@@ -152,6 +155,8 @@ public:
                                 << " ns Node " << m_node->GetId() << " has prepared to resend pkt to " << (int) tag.GetSendNode() << " seq " << resend_seq);
                                 // direct send in the highest priority
                                 m_SendPacketCallback(pkt, m_dip, 1); 
+                                total_resend ++;
+                                totalTx ++;
                             }
                             resend_waiting = resend_seq;
                         }
@@ -177,6 +182,8 @@ public:
         if (window_manager->last_ACK == window_manager->total_ACK) {
             m_notifyAppFinish();
             timeout_check.Cancel();
+            m_CancelNICQueueCallback();
+            Report();
         }
     }
     void AddTask(uint64_t size, Ipv4Address _sip, Ipv4Address _dip, Callback<void> notifyAppFinish) {
@@ -201,6 +208,7 @@ public:
             if ((int) seqNum.GetValue() <= total_packet) {
                 Ptr<Packet> pkt = GeneratePacket(seqNum.GetValue(), switch_agtr_pos, false, false, false);
                 m_TxQueue.push(std::make_pair(pkt, m_dip));
+                totalTx ++;
             }   
         }
         m_timestamp = Simulator::Now().GetNanoSeconds();
@@ -225,6 +233,9 @@ public:
                 uint16_t switch_agtr_pos = hash_table->hash_map[(timeout_seq - 1) % max_agtr_size_per_thread];
                 Ptr<Packet> pkt = GeneratePacket(timeout_seq, switch_agtr_pos, false, false, true);
                 m_SendPacketCallback(pkt, m_dip, 1); 
+                totalTx ++;
+                total_timeout ++;
+                total_resend ++;
             }
             NS_LOG_UNCOND(TIMEOUT << CLI << " At time " << Simulator::Now().GetNanoSeconds() 
             << " ns Node " << m_node->GetId() << " seq " << window_manager->last_ACK + 1 << " to " << timeout_end_seq - 1 << " last_ACK: " << window_manager->last_ACK);
@@ -316,7 +327,14 @@ public:
         resend_waiting = 0;
 
     }
+    
+    void Report() {
+        NS_LOG_UNCOND(CLI << "Total Tx:" << totalTx << " Total Rx: " << totalRx << " Total resend: " << total_resend << " Total Timeout: " << total_timeout);
+    }
+    
     SendPacketCallback m_SendPacketCallback;
+    CancelNICQueueCallback m_CancelNICQueueCallback;
+
 private:
     Ptr<Node> m_node;
     std::queue<std::pair<Ptr<Packet>, Ipv4Address>> m_TxQueue;
@@ -347,6 +365,12 @@ private:
     int resend_waiting{0};
     uint64_t finish_window_seq;
     EventId timeout_check;
+
+    // metrics
+    uint64_t totalTx{0};
+    uint64_t totalRx{0};
+    uint32_t total_resend{0};
+    uint32_t total_timeout{0};
 };
 
 
